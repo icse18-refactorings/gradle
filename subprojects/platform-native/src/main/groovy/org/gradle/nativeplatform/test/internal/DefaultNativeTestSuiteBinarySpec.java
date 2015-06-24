@@ -56,9 +56,10 @@ public abstract class DefaultNativeTestSuiteBinarySpec extends AbstractNativeBin
     }
 
     @Override
-    public Set<LanguageSourceSet> getAllSources() {
-        Set<LanguageSourceSet> sources = Sets.newLinkedHashSet(super.getAllSources());
-        sources.addAll(testedBinary.getAllSources());
+    public Set<LanguageSourceSet> getInputs() {
+        // TODO:LPTR Fix this with non-owned inputs instead
+        Set<LanguageSourceSet> sources = Sets.newLinkedHashSet(super.getInputs());
+        sources.addAll(testedBinary.getInputs());
         return sources;
     }
 

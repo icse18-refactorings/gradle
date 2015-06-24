@@ -149,6 +149,11 @@ public class DefaultClassDirectoryBinarySpec extends AbstractBuildableModelEleme
     }
 
     @Override
+    public Set<LanguageSourceSet> getInputs() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void addSourceSet(LanguageSourceSet sourceSet) {
         sourceSets.add(sourceSet);
     }

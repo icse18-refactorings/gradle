@@ -36,7 +36,7 @@ class VisualStudioProjectRegistryTest extends Specification {
         when:
         visualStudioProjectMapper.mapToConfiguration(executableBinary) >> new VisualStudioProjectMapper.ProjectConfigurationNames("vsProject", "vsConfig", "vsPlatform")
         executableBinary.component >> executable
-        executableBinary.allSources >> sources
+        executableBinary.inputs >> sources
 
         and:
         registry.addProjectConfiguration(executableBinary)
@@ -57,8 +57,8 @@ class VisualStudioProjectRegistryTest extends Specification {
         when:
         visualStudioProjectMapper.mapToConfiguration(executableBinary1) >> new VisualStudioProjectMapper.ProjectConfigurationNames("vsProject", "vsConfig1", "vsPlatform")
         visualStudioProjectMapper.mapToConfiguration(executableBinary2) >> new VisualStudioProjectMapper.ProjectConfigurationNames("vsProject", "vsConfig2", "vsPlatform")
-        executableBinary1.allSources >> sources
-        executableBinary2.allSources >> sources
+        executableBinary1.inputs >> sources
+        executableBinary2.inputs >> sources
 
         and:
         registry.addProjectConfiguration(executableBinary1)
@@ -92,8 +92,8 @@ class VisualStudioProjectRegistryTest extends Specification {
         when:
         visualStudioProjectMapper.mapToConfiguration(executableBinary1) >> new VisualStudioProjectMapper.ProjectConfigurationNames("vsProject", "vsConfig1", "vsPlatform")
         visualStudioProjectMapper.mapToConfiguration(executableBinary2) >> new VisualStudioProjectMapper.ProjectConfigurationNames("vsProject", "vsConfig2", "vsPlatform")
-        executableBinary1.allSources >> ([sourceCommon, source1] as Set)
-        executableBinary2.allSources >> ([sourceCommon, source2] as Set)
+        executableBinary1.inputs >> ([sourceCommon, source1] as Set)
+        executableBinary2.inputs >> ([sourceCommon, source2] as Set)
 
         and:
         registry.addProjectConfiguration(executableBinary1)

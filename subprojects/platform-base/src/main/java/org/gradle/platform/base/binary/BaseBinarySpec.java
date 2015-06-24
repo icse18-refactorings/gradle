@@ -127,6 +127,11 @@ public abstract class BaseBinarySpec extends AbstractBuildableModelElement imple
 
     @Override
     public Set<LanguageSourceSet> getAllSources() {
+        return getInputs();
+    }
+
+    @Override
+    public Set<LanguageSourceSet> getInputs() {
         return Sets.newLinkedHashSet(mainSources);
     }
 

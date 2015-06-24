@@ -136,7 +136,7 @@ class VisualStudioProjectConfigurationTest extends Specification {
         final sources = [] as Set
 
         when:
-        exeBinary.allSources >> sources
+        exeBinary.inputs >> sources
         exeBinary.libs >> []
 
         then:
@@ -168,7 +168,7 @@ class VisualStudioProjectConfigurationTest extends Specification {
         def deps1 = dependencySet(file1, file2)
         def deps2 = dependencySet(file3)
 
-        exeBinary.allSources >> ([] as Set)
+        exeBinary.inputs >> ([] as Set)
         exeBinary.libs >> [deps1, deps2]
 
         then:
