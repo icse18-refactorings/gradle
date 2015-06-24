@@ -25,12 +25,14 @@ import java.util.Set;
 
 public interface BinarySpecInternal extends BinarySpec {
     ModelType<BinarySpec> PUBLIC_MODEL_TYPE = ModelType.of(BinarySpec.class);
-    
+
     /**
      * Return all language source sets.
      * This method is overridden by NativeTestSuiteBinarySpec to include the source sets from the tested binary.
      */
     Set<LanguageSourceSet> getAllSources();
+
+    void addSourceSet(LanguageSourceSet sourceSet);
 
     void setBinarySources(FunctionalSourceSet sources);
 
