@@ -16,7 +16,6 @@
 
 package org.gradle.play.internal;
 
-import org.gradle.api.file.FileCollection;
 import org.gradle.platform.base.internal.BinarySpecInternal;
 import org.gradle.platform.base.internal.toolchain.ToolResolver;
 import org.gradle.play.PlayApplicationBinarySpec;
@@ -40,7 +39,7 @@ public interface PlayApplicationBinarySpecInternal extends PlayApplicationBinary
 
     // TODO:DAZ Should be taken from the LanguageSourceSet instances?
     // TODO:DAZ Should be a Classpath instance
-    FileCollection getClasspath();
+    Iterable<File> getClasspath();
 
-    void setClasspath(FileCollection applicationClasspath);
+    void setClasspath(Iterable<File> applicationClasspath);
 }

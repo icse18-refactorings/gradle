@@ -16,12 +16,13 @@
 
 package org.gradle.play.plugins;
 
-import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.artifacts.ConfigurationContainer;
-import org.gradle.api.artifacts.Dependency;
-import org.gradle.api.artifacts.PublishArtifact;
+import com.google.common.collect.ImmutableSet;
+import org.gradle.api.artifacts.*;
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.file.FileCollection;
+
+import java.io.File;
 
 /**
  * Conventional locations and names for play plugins.
@@ -78,8 +79,34 @@ public class PlayPluginConfigurations {
             this.name = name;
         }
 
-        FileCollection getFileCollection() {
+        private Configuration getConfiguration() {
             return configurations.getByName(name);
+        }
+
+        private Iterable<File> filterFilesByProjectComponentType(final boolean projectComponent) {
+            ImmutableSet.Builder<File> files = ImmutableSet.builder();
+            for (ResolvedArtifact artifact : getConfiguration().getResolvedConfiguration().getResolvedArtifacts()) {
+                if ((artifact.getId().getComponentIdentifier() instanceof ProjectComponentIdentifier) == projectComponent) {
+                    files.add(artifact.getFile());
+                }
+            }
+            return files.build();
+        }
+
+        FileCollection getFileCollection() {
+            return getConfiguration();
+        }
+
+        Iterable<File> getFiles() {
+            return getConfiguration().getFiles();
+        }
+
+        Iterable<File> getChangingFiles() {
+            return filterFilesByProjectComponentType(true);
+        }
+
+        Iterable<File> getNonChangingFiles() {
+            return filterFilesByProjectComponentType(false);
         }
 
         void addDependency(Object notation) {

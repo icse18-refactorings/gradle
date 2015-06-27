@@ -19,9 +19,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang.StringUtils;
 import org.gradle.api.*;
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.artifacts.dependencies.DefaultExternalModuleDependency;
 import org.gradle.api.internal.artifacts.publish.DefaultPublishArtifact;
 import org.gradle.api.internal.file.FileResolver;
+import org.gradle.api.internal.file.collections.SimpleFileCollection;
 import org.gradle.api.internal.file.copy.CopySpecInternal;
 import org.gradle.api.internal.project.ProjectIdentifier;
 import org.gradle.api.plugins.ExtensionContainer;
@@ -236,7 +238,7 @@ public class PlayApplicationPlugin implements Plugin<Project> {
                     PublicAssets assets = playBinary.getAssets();
                     assets.addAssetDir(new File(projectIdentifier.getProjectDir(), "public"));
 
-                    playBinaryInternal.setClasspath(configurations.getPlay().getFileCollection());
+                    playBinaryInternal.setClasspath(configurations.getPlay().getFiles());
 
                     DeploymentRegistry deploymentRegistry = serviceRegistry.get(DeploymentRegistry.class);
                     // this doesn't handle a scenario where a binary name changes between builds in the same
@@ -447,11 +449,15 @@ public class PlayApplicationPlugin implements Plugin<Project> {
                         scalaCompile.dependsOn(generatedSourceSet);
                     }
 
-                    scalaCompile.setClasspath(((PlayApplicationBinarySpecInternal) binary).getClasspath());
+                    scalaCompile.setClasspath(toFileCollection(((PlayApplicationBinarySpecInternal) binary).getClasspath()));
 
                     binary.getClasses().builtBy(scalaCompile);
                 }
             });
+        }
+
+        private FileCollection toFileCollection(Iterable<File> files) {
+            return files instanceof FileCollection ? (FileCollection) files : new SimpleFileCollection(files);
         }
 
         @BinaryTasks
@@ -497,7 +503,8 @@ public class PlayApplicationPlugin implements Plugin<Project> {
                         playRun.setApplicationJar(binary.getJarFile());
                         playRun.setAssetsJar(binary.getAssetsJarFile());
                         playRun.setAssetsDirs(binary.getAssets().getAssetDirs());
-                        playRun.setRuntimeClasspath(configurations.getPlayRun().getFileCollection());
+                        playRun.setRuntimeClasspath(configurations.getPlayRun().getNonChangingFiles());
+                        playRun.setChangingClasspath(configurations.getPlayRun().getChangingFiles());
                         playRun.dependsOn(binary.getBuildTask());
                     }
                 });

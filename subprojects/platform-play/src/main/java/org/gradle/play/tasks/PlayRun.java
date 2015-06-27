@@ -19,7 +19,6 @@ package org.gradle.play.tasks;
 import org.gradle.api.GradleException;
 import org.gradle.api.Incubating;
 import org.gradle.api.UncheckedIOException;
-import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.ConventionTask;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
@@ -57,7 +56,10 @@ public class PlayRun extends ConventionTask {
     private Set<File> assetsDirs;
 
     @InputFiles
-    private FileCollection runtimeClasspath;
+    private Iterable<File> runtimeClasspath;
+
+    @InputFiles
+    private Iterable<File> changingClasspath;
 
     private BaseForkOptions forkOptions;
 
@@ -87,7 +89,7 @@ public class PlayRun extends ConventionTask {
                 .start("Start Play server", "Starting Play");
 
         int httpPort = getHttpPort();
-        PlayRunSpec spec = new DefaultPlayRunSpec(runtimeClasspath, applicationJar, assetsJar, assetsDirs, getProject().getProjectDir(), getForkOptions(), httpPort);
+        PlayRunSpec spec = new DefaultPlayRunSpec(runtimeClasspath, changingClasspath, applicationJar, assetsJar, assetsDirs, getProject().getProjectDir(), getForkOptions(), httpPort);
 
         try {
             deploymentHandle.start(spec);
@@ -145,8 +147,12 @@ public class PlayRun extends ConventionTask {
         this.assetsDirs = assetsDirs;
     }
 
-    public void setRuntimeClasspath(FileCollection runtimeClasspath) {
+    public void setRuntimeClasspath(Iterable<File> runtimeClasspath) {
         this.runtimeClasspath = runtimeClasspath;
+    }
+
+    public void setChangingClasspath(Iterable<File> changingClasspath) {
+        this.changingClasspath = changingClasspath;
     }
 
     public void setDeploymentRegistry(DeploymentRegistry deploymentRegistry) {

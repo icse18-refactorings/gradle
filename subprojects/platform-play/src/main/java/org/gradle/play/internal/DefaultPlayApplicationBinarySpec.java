@@ -18,7 +18,6 @@ package org.gradle.play.internal;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.AbstractBuildableModelElement;
 import org.gradle.language.base.LanguageSourceSet;
 import org.gradle.language.javascript.JavaScriptSourceSet;
@@ -44,7 +43,7 @@ public class DefaultPlayApplicationBinarySpec extends BaseBinarySpec implements 
     private PlayPlatform platform;
     private File jarFile;
     private File assetsJarFile;
-    private FileCollection classpath;
+    private Iterable<File> classpath;
     private ToolResolver toolResolver;
     private PlayApplicationSpec application;
 
@@ -106,12 +105,12 @@ public class DefaultPlayApplicationBinarySpec extends BaseBinarySpec implements 
     }
 
     @Override
-    public FileCollection getClasspath() {
+    public Iterable<File> getClasspath() {
         return classpath;
     }
 
     @Override
-    public void setClasspath(FileCollection classpath) {
+    public void setClasspath(Iterable<File> classpath) {
         this.classpath = classpath;
     }
 

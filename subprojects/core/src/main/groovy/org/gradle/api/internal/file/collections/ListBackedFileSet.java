@@ -15,11 +15,13 @@
  */
 package org.gradle.api.internal.file.collections;
 
+import com.google.common.collect.Sets;
 import org.gradle.util.GUtil;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Set;
 
 /**
  * Adapts a java util collection into a file set.
@@ -31,8 +33,8 @@ public class ListBackedFileSet implements MinimalFileSet, Serializable {
         this(Arrays.asList(files));
     }
 
-    public ListBackedFileSet(Collection<File> files) {
-        this.files = new LinkedHashSet<File>(files);
+    public ListBackedFileSet(Iterable<File> files) {
+        this.files = Sets.newLinkedHashSet(files);
     }
 
     public String getDisplayName() {
