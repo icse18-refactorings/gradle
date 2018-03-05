@@ -37,7 +37,7 @@ object ProjectGroups {
             "platformJvm", "languageJvm", "languageJava", "languageGroovy", "languageScala",
             "platformNative", "platformPlay", "idePlay", "languageNative", "ideNative", "testingBase",
             "testingNative", "testingJvm", "testingJunitPlatform", "pluginDevelopment", "pluginUse", "resourcesHttp",
-            "resourcesSftp", "resourcesS3", "resourcesGcs", "compositeBuilds", "buildCacheHttp").map { rootProject.project(it) }.toSet()
+            "resourcesSftp", "resourcesS3", "resourcesGcs", "compositeBuilds", "buildCacheHttp", "dependency-locking").map { rootProject.project(it) }.toSet()
 
     val Project.implementationPluginProjects
         get() = setOf(rootProject.project("toolingApiBuilders"))
