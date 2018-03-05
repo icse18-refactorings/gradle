@@ -52,6 +52,11 @@ public class DefaultPolymorphicNamedEntityInstantiator<T> implements Polymorphic
         return factory.create(name);
     }
 
+    @Override
+    public <S extends T> S create(String name, Class<S> type, Object... args) {
+        throw new UnsupportedOperationException("For testing purposes"); // TODO(adamb): what's the right thing to do here?
+    }
+
     public String getSupportedTypeNames() {
         List<String> names = Lists.newArrayList();
         for (Class<?> clazz : factories.keySet()) {

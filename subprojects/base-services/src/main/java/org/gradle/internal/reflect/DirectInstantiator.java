@@ -38,6 +38,10 @@ public class DirectInstantiator implements Instantiator {
     private DirectInstantiator() {
     }
 
+    public <T> Constructor<T> matchingConstructor(Class<T> type, Class<?>[] argTypes) {
+        return (Constructor<T>) constructorCache.get(type, argTypes).getMethod();
+    }
+
     public <T> T newInstance(Class<? extends T> type, Object... params) {
         try {
             Class<?>[] argTypes = wrapArgs(params);
@@ -46,7 +50,7 @@ public class DirectInstantiator implements Instantiator {
                 // we need to wrap this into a loop, because there's always a risk
                 // that the method, which is weakly referenced, has been collected
                 // in between the creation time and now
-                match = constructorCache.get(type, argTypes).getMethod();
+                match = matchingConstructor(type, argTypes);
             }
             return type.cast(match.newInstance(params));
         } catch (InvocationTargetException e) {

@@ -303,6 +303,14 @@ public class DefaultTaskContainer extends DefaultTaskCollection<Task> implements
             }
             return type.cast(taskFactory.create(name, type.asSubclass(TaskInternal.class)));
         }
+
+        @Override
+        public <S extends Task> S create(String name, Class<S> type, Object... args) {
+            if (type.isAssignableFrom(TaskInternal.class)) {
+                return type.cast(taskFactory.create(name, TaskInternal.class, args));
+            }
+            return type.cast(taskFactory.create(name, type.asSubclass(TaskInternal.class), args));
+        }
     }
 
     private static class TaskCreator<T extends TaskInternal> implements Action<MutableModelNode> {

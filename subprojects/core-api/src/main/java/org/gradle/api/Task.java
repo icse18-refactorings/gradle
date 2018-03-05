@@ -159,6 +159,8 @@ public interface Task extends Comparable<Task>, ExtensionAware {
 
     String TASK_ACTION = "action";
 
+    String TASK_PARAMS = "params";
+
     /**
      * <p>Returns the name of this task. The name uniquely identifies the task within its {@link Project}.</p>
      *

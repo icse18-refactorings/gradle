@@ -55,8 +55,8 @@ public class DefaultPolymorphicDomainObjectContainer<T> extends AbstractPolymorp
         }
     }
 
-    protected <U extends T> U doCreate(String name, Class<U> type) {
-        return namedEntityInstantiator.create(name, type);
+    protected <U extends T> U doCreate(String name, Class<U> type, Object... args) {
+        return namedEntityInstantiator.create(name, type, args);
     }
 
     public <U extends T> void registerDefaultFactory(NamedDomainObjectFactory<U> factory) {

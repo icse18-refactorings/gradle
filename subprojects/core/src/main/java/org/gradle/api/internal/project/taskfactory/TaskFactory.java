@@ -33,13 +33,14 @@ import org.gradle.util.GUtil;
 import org.gradle.util.NameValidator;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
 public class TaskFactory implements ITaskFactory {
     private static final Set<String> VALID_TASK_ARGUMENTS = ImmutableSet.of(
-        Task.TASK_ACTION, Task.TASK_DEPENDS_ON, Task.TASK_DESCRIPTION, Task.TASK_GROUP, Task.TASK_NAME, Task.TASK_OVERWRITE, Task.TASK_TYPE
+        Task.TASK_ACTION, Task.TASK_DEPENDS_ON, Task.TASK_DESCRIPTION, Task.TASK_GROUP, Task.TASK_NAME, Task.TASK_OVERWRITE, Task.TASK_TYPE, Task.TASK_PARAMS
     );
     private static final Set<String> MANDATORY_TASK_ARGUMENTS = ImmutableSet.of(
         Task.TASK_NAME, Task.TASK_TYPE
@@ -71,7 +72,13 @@ public class TaskFactory implements ITaskFactory {
         }
 
         Class<? extends TaskInternal> type = (Class) actualArgs.get(Task.TASK_TYPE);
-        TaskInternal task = create(name, type);
+        Object[] constructorArgs = getConstructorArgs(actualArgs);
+        TaskInternal task;
+        if (constructorArgs != null) {
+            task = create(name, type, constructorArgs);
+        } else {
+            task = create(name, type);
+        }
 
         Object dependsOnTasks = actualArgs.get(Task.TASK_DEPENDS_ON);
         if (dependsOnTasks != null) {
@@ -99,6 +106,11 @@ public class TaskFactory implements ITaskFactory {
 
     @Override
     public <S extends TaskInternal> S create(String name, final Class<S> type) {
+        return create(name, type, (Object[]) null);
+    }
+
+    @Override
+    public <S extends TaskInternal> S create(String name, final Class<S> type, final Object... args) {
         if (!Task.class.isAssignableFrom(type)) {
             throw new InvalidUserDataException(String.format(
                 "Cannot create task of type '%s' as it does not implement the Task interface.",
@@ -116,6 +128,9 @@ public class TaskFactory implements ITaskFactory {
         return type.cast(AbstractTask.injectIntoNewInstance(project, name, type, new Callable<Task>() {
             public Task call() throws Exception {
                 try {
+                    if (args != null) {
+                        return instantiator.newInstance(generatedType, args);
+                    }
                     return instantiator.newInstance(generatedType);
                 } catch (ObjectInstantiationException e) {
                     throw new TaskInstantiationException(String.format("Could not create task of type '%s'.", type.getSimpleName()),
@@ -149,5 +164,17 @@ public class TaskFactory implements ITaskFactory {
         if (map.get(key) == null) {
             map.put(key, defaultValue);
         }
+    }
+
+    private Object[] getConstructorArgs(Map<String, ?> args) {
+        Object constructorArgs = args.get(Task.TASK_PARAMS);
+        if (constructorArgs instanceof List) {
+            List<?> asList = (List<?>) constructorArgs;
+            return asList.toArray(new Object[asList.size()]);
+        }
+        if (constructorArgs instanceof Object[]) {
+            return (Object[]) constructorArgs;
+        }
+        return null;
     }
 }

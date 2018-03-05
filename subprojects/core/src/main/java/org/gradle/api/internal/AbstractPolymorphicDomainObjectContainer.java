@@ -39,10 +39,14 @@ public abstract class AbstractPolymorphicDomainObjectContainer<T>
         super(type, instantiator, namer);
     }
 
-    protected abstract <U extends T> U doCreate(String name, Class<U> type);
+    protected abstract <U extends T> U doCreate(String name, Class<U> type, Object... args);
 
     public <U extends T> U create(String name, Class<U> type) {
-        return create(name, type, null);
+        return create(name, type, null, null);
+    }
+
+    public <U extends T> U create(String name, Class<U> type, Object... args) {
+        return create(name, type, null, args);
     }
 
     public <U extends T> U maybeCreate(String name, Class<U> type) throws InvalidUserDataException {
@@ -54,8 +58,12 @@ public abstract class AbstractPolymorphicDomainObjectContainer<T>
     }
 
     public <U extends T> U create(String name, Class<U> type, Action<? super U> configuration) {
+        return create(name, type, configuration);
+    }
+
+    public <U extends T> U create(String name, Class<U> type, Action<? super U> configuration, Object... args) {
         assertCanAdd(name);
-        U object = doCreate(name, type);
+        U object = doCreate(name, type, args);
         add(object);
         if (configuration != null) {
             configuration.execute(object);
