@@ -36,7 +36,6 @@ public class DependencyLockingPlugin implements Plugin<ProjectInternal> {
     private static final Logger LOGGER = Logging.getLogger(DependencyLockingPlugin.class);
 
     static final String FILE_SUFFIX = ".lockfile";
-    static final String FILE_GLOB = "*" + FILE_SUFFIX;
     static final String DEPENDENCY_LOCKING_FOLDER = "dependency-locks";
 
     private final DependencyFactory dependencyFactory;
@@ -51,6 +50,7 @@ public class DependencyLockingPlugin implements Plugin<ProjectInternal> {
         LOGGER.warn("Applying dependency-locking plugin");
         final Path lockFilesRoot = project.file(DEPENDENCY_LOCKING_FOLDER).toPath();
         try {
+            // TODO create directory only when needing to write
             Files.createDirectories(lockFilesRoot);
         } catch (IOException e) {
             throw new RuntimeException("Issue with dependency-lock directory", e);
