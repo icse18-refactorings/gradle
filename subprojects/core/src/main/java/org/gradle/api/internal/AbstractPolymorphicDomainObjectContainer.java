@@ -58,7 +58,7 @@ public abstract class AbstractPolymorphicDomainObjectContainer<T>
     }
 
     public <U extends T> U create(String name, Class<U> type, Action<? super U> configuration) {
-        return create(name, type, configuration);
+        return create(name, type, configuration, (Object[]) null);
     }
 
     public <U extends T> U create(String name, Class<U> type, Action<? super U> configuration, Object... args) {
