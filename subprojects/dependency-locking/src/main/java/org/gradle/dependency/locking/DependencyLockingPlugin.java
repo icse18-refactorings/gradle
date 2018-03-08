@@ -25,19 +25,15 @@ import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 
 import javax.inject.Inject;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Incubating
 public class DependencyLockingPlugin implements Plugin<ProjectInternal> {
 
-
     private static final Logger LOGGER = Logging.getLogger(DependencyLockingPlugin.class);
 
-    static final String FILE_SUFFIX = ".lockfile";
-    static final String DEPENDENCY_LOCKING_FOLDER = "dependency-locks";
-
+    private final AtomicBoolean mustWrite = new AtomicBoolean(false);
+    private LockFileReaderWriter lockFileReaderWriter;
     private final DependencyFactory dependencyFactory;
 
     @Inject
@@ -48,20 +44,18 @@ public class DependencyLockingPlugin implements Plugin<ProjectInternal> {
     @Override
     public void apply(final ProjectInternal project) {
         LOGGER.warn("Applying dependency-locking plugin");
-        final Path lockFilesRoot = project.file(DEPENDENCY_LOCKING_FOLDER).toPath();
-        try {
-            // TODO create directory only when needing to write
-            Files.createDirectories(lockFilesRoot);
-        } catch (IOException e) {
-            throw new RuntimeException("Issue with dependency-lock directory", e);
-        }
+        lockFileReaderWriter = new LockFileReaderWriter(project);
+
+        DependencyLockTask saveDependencyLocks = project.getTasks().create("saveDependencyLocks", DependencyLockTask.class);
+        saveDependencyLocks.setMustWrite(mustWrite);
+
         project.getConfigurations().all(new Action<Configuration>() {
             @Override
             public void execute(Configuration configuration) {
                 if (configuration.isCanBeResolved()) {
                     LOGGER.warn("Adding hook to configuration {}", configuration.getName());
-                    configuration.getIncoming().beforeResolve(new ConfigurationBeforeResolveAction(lockFilesRoot, project.getDependencies().getConstraints(), dependencyFactory));
-                    configuration.getIncoming().afterResolve(new ConfigurationAfterResolveAction(lockFilesRoot));
+                    configuration.getIncoming().beforeResolve(new ConfigurationBeforeResolveAction(lockFileReaderWriter, project.getDependencies().getConstraints(), dependencyFactory));
+                    configuration.getIncoming().afterResolve(new ConfigurationAfterResolveAction(lockFileReaderWriter, mustWrite));
                 }
             }
         });

@@ -24,32 +24,51 @@ import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 import org.gradle.dependency.locking.exception.LockOutOfDateException;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 class ConfigurationAfterResolveAction implements Action<ResolvableDependencies> {
 
     private static final Logger LOGGER = Logging.getLogger(DependencyLockingPlugin.class);
-    private Path lockFilesRoot;
+    private LockFileReaderWriter lockFileReaderWriter;
+    private final AtomicBoolean mustWrite;
 
-    public ConfigurationAfterResolveAction(Path lockFilesRoot) {
-        this.lockFilesRoot = lockFilesRoot;
+    public ConfigurationAfterResolveAction(LockFileReaderWriter lockFileReaderWriter, AtomicBoolean mustWrite) {
+        this.lockFileReaderWriter = lockFileReaderWriter;
+        this.mustWrite = mustWrite;
     }
 
     @Override
     public void execute(ResolvableDependencies resolvableDependencies) {
-        Path lockFile = lockFilesRoot.resolve(resolvableDependencies.getName() + DependencyLockingPlugin.FILE_SUFFIX);
-        if (Files.exists(lockFile)) {
-            validateLockAligned(resolvableDependencies, lockFile);
+        List<String> lines = lockFileReaderWriter.readLockFile(resolvableDependencies.getName());
+        Map<String, String> modules = getMapOfResolvedDependencies(resolvableDependencies);
+        validateLockAligned(modules, lines);
+        if (mustWrite.get()) {
+            writeDependencyLockFile(resolvableDependencies.getName(), modules);
+        } else {
+            // TODO need to record the resolved configuration for potential later writing
         }
     }
 
-    private void validateLockAligned(ResolvableDependencies resolvableDependencies, Path lockFile) {
+    private void writeDependencyLockFile(String configurationName, Map<String, String> resolvedModules) {
+        lockFileReaderWriter.writeLockFile(configurationName, resolvedModules);
+    }
+
+    private void validateLockAligned(Map<String, String> modules, List<String> lines) {
+        for (String line : lines) {
+            String module = line.substring(0, line.lastIndexOf(':'));
+            String version = modules.get(module);
+            if (version == null) {
+                throw new LockOutOfDateException("Lock file contained module '" + line + "' but it is not part of the resolved modules");
+            } else if (!line.contains(version)) {
+                throw new LockOutOfDateException("Lock file expected '" + line + "' but resolution result was '" + module + ":" + version + "'");
+            }
+        }
+    }
+
+    private Map<String, String> getMapOfResolvedDependencies(ResolvableDependencies resolvableDependencies) {
         Map<String, String> modules = new TreeMap<String, String>();
         LOGGER.warn("Post resolve hook for {}", resolvableDependencies.getName());
         for (ResolvedComponentResult resolvedComponentResult : resolvableDependencies.getResolutionResult().getAllComponents()) {
@@ -59,22 +78,6 @@ class ConfigurationAfterResolveAction implements Action<ResolvableDependencies> 
             }
         }
         LOGGER.warn("Found the following modules:\n\t{}", modules);
-        List<String> lines = null;
-        try {
-            lines = Files.readAllLines(lockFile, Charset.forName("UTF-8"));
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to load lock file");
-        }
-        for (String line : lines) {
-            if (!line.isEmpty()) {
-                String module = line.substring(0, line.lastIndexOf(':'));
-                String version = modules.get(module);
-                if (version == null) {
-                    throw new LockOutOfDateException("Lock file contained module '" + line + "' but it is not part of the resolved modules");
-                } else if (!line.contains(version)) {
-                    throw new LockOutOfDateException("Lock file expected '" + line + "' but resolution result was '" + module + ":" + version + "'");
-                }
-            }
-        }
+        return modules;
     }
 }

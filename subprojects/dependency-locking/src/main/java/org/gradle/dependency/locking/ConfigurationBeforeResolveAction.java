@@ -24,21 +24,18 @@ import org.gradle.api.internal.artifacts.dsl.dependencies.DependencyFactory;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.List;
 
 class ConfigurationBeforeResolveAction implements Action<ResolvableDependencies> {
 
     private static final Logger LOGGER = Logging.getLogger(DependencyLockingPlugin.class);
 
-    private final Path lockFilesRoot;
+    private final LockFileReaderWriter lockFileReaderWriter;
     private final DependencyConstraintHandler constraintsHandler;
     private final DependencyFactory dependencyFactory;
 
-    public ConfigurationBeforeResolveAction(Path lockFilesRoot, DependencyConstraintHandler constraintsHandler, DependencyFactory dependencyFactory) {
-        this.lockFilesRoot = lockFilesRoot;
+    public ConfigurationBeforeResolveAction(LockFileReaderWriter lockFileReaderWriter, DependencyConstraintHandler constraintsHandler, DependencyFactory dependencyFactory) {
+        this.lockFileReaderWriter = lockFileReaderWriter;
         this.constraintsHandler = constraintsHandler;
         this.dependencyFactory = dependencyFactory;
     }
@@ -46,25 +43,16 @@ class ConfigurationBeforeResolveAction implements Action<ResolvableDependencies>
     @Override
     public void execute(ResolvableDependencies resolvableDependencies) {
         LOGGER.warn("Pre resolve hook for {}", resolvableDependencies.getName());
-        Path lockFile = lockFilesRoot.resolve(resolvableDependencies.getName() + DependencyLockingPlugin.FILE_SUFFIX);
-        if (Files.exists(lockFile)) {
-            loadLockFile(resolvableDependencies.getName(), lockFile);
-        }
+        loadLockFile(resolvableDependencies.getName(), lockFileReaderWriter.readLockFile(resolvableDependencies.getName()));
         LOGGER.warn("Constraints: {}", resolvableDependencies.getDependencyConstraints());
     }
 
-    private void loadLockFile(String configuration, Path lockFile) {
-        try {
-            for (String line : Files.readAllLines(lockFile, Charset.forName("UTF-8"))) {
-                if (!line.isEmpty()) {
-                    DependencyConstraint dependencyConstraint = dependencyFactory.createDependencyConstraint(line);
-                    dependencyConstraint.because("dependency-locking in place");
-                    LOGGER.warn("Adding dependency constraint '{}:{}:{}' to configuration '{}'", dependencyConstraint.getGroup(), dependencyConstraint.getName(), dependencyConstraint.getVersion(), configuration);
-                    constraintsHandler.add(configuration, dependencyConstraint);
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to transform lock file into constraints", e);
+    private void loadLockFile(String configuration, List<String> lines) {
+        for (String line : lines) {
+            DependencyConstraint dependencyConstraint = dependencyFactory.createDependencyConstraint(line);
+            dependencyConstraint.because("dependency-locking in place");
+            LOGGER.warn("Adding dependency constraint '{}:{}:{}' to configuration '{}'", dependencyConstraint.getGroup(), dependencyConstraint.getName(), dependencyConstraint.getVersion(), configuration);
+            constraintsHandler.add(configuration, dependencyConstraint);
         }
     }
 

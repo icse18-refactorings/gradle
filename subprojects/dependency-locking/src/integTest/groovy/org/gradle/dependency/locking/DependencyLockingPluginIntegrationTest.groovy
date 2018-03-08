@@ -22,15 +22,6 @@ import static org.gradle.util.Matchers.containsText
 
 class DependencyLockingPluginIntegrationTest extends AbstractDependencyResolutionTest {
 
-    def 'basic'() {
-        buildFile << """
-apply plugin: 'java-library'
-apply plugin: 'dependency-locking'
-"""
-        expect:
-        succeeds 'dependencies'
-    }
-
     def 'succeeds with lock file present'() {
         mavenRepo.module('org', 'foo', '1.0').publish()
 
@@ -52,7 +43,7 @@ dependencies {
 }
 """
 
-        file('dependency-locks', 'lockedConf.lockfile') << """
+        file('gradle', 'dependency-locks', 'lockedConf.lockfile') << """
 org:foo:1.0
 """
         expect:
@@ -88,7 +79,7 @@ dependencies {
 }
 """
 
-        file('dependency-locks', 'lockedConf.lockfile') << """
+        file('gradle', 'dependency-locks', 'lockedConf.lockfile') << """
 org:foo:1.0
 """
         when:
@@ -121,7 +112,7 @@ dependencies {
 }
 """
 
-        file('dependency-locks', 'lockedConf.lockfile') << """
+        file('gradle', 'dependency-locks', 'lockedConf.lockfile') << """
 org:bar:1.0
 org:foo:1.0
 """
@@ -130,5 +121,45 @@ org:foo:1.0
 
         then:
         failure.assertThatCause(containsText("Lock file contained module 'org:bar:1.0' but it is not part of the resolved modules"))
+    }
+
+    def 'writes dependency lock file when requested'() {
+        mavenRepo.module('org', 'foo', '1.0').publish()
+        mavenRepo.module('org', 'bar', '1.0').publish()
+
+        buildFile << """
+apply plugin: 'dependency-locking'
+
+repositories {
+    maven {
+        name 'repo'
+        url '${mavenRepo.uri}'
+    }
+}
+configurations {
+    lockedConf
+}
+
+dependencies {
+    lockedConf 'org:foo:1.+'
+    lockedConf 'org:bar:1.+'
+}
+
+tasks.dependencies.dependsOn saveDependencyLocks
+"""
+
+        when:
+        succeeds'dependencies'
+
+        then:
+        def lockFile = file('gradle', 'dependency-locks', 'lockedConf.lockfile')
+        lockFile.exists()
+        lockFile.text == """# This is a Gradle generated file for dependency locking.
+# Manual edits can break the build and are not advised.
+# This file is expected to be part of source control.
+org:bar:1.0
+org:foo:1.0
+"""
+
     }
 }
