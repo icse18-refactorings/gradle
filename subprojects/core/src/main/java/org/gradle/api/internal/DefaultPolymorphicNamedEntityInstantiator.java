@@ -54,7 +54,7 @@ public class DefaultPolymorphicNamedEntityInstantiator<T> implements Polymorphic
 
     @Override
     public <S extends T> S create(String name, Class<S> type, Object... args) {
-        throw new UnsupportedOperationException("For testing purposes"); // TODO(adamb): what's the right thing to do here?
+        return create(name, type); // TODO(adamb): what's the right thing to do here?
     }
 
     public String getSupportedTypeNames() {
