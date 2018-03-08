@@ -159,7 +159,11 @@ public interface Task extends Comparable<Task>, ExtensionAware {
 
     String TASK_ACTION = "action";
 
-    /** @since 4.7 */
+    /**
+     * Constructor arguments for the Task
+     *
+     * @since 4.7
+     */
     @Incubating
     String TASK_PARAMS = "params";
 
