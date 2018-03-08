@@ -25,7 +25,7 @@ public class NamedEntityInstantiators {
             }
 
             @Override
-            public <S1 extends S> S1 create(String name, Class<S1> type, Object... args) {
+            public <D extends S> D create(String name, Class<D> type, Object... args) {
                 throw new IllegalArgumentException(String.format("Cannot create an item of type %s as this is not a subtype of %s.", type.getName(), baseClass.getName()));
             }
         };
