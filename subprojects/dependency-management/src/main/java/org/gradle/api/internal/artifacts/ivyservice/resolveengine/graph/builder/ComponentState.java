@@ -56,9 +56,10 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
 
     private ComponentSelectionState state = ComponentSelectionState.Selectable;
     private ModuleVersionResolveException failure;
-    private SelectorState selectedBy;
+    // The first selector that resolved this component
+    private SelectorState firstSelectedBy;
+    private List<SelectorState> selectedBy;
     private DependencyGraphBuilder.VisitState visitState = DependencyGraphBuilder.VisitState.NotSeen;
-    List<SelectorState> allResolvers;
 
     ComponentState(Long resultId, ModuleResolveState module, ModuleVersionIdentifier id, ComponentIdentifier componentIdentifier, ComponentMetaDataResolver resolver, VariantNameBuilder variantNameBuilder) {
         this.resultId = resultId;
@@ -122,7 +123,7 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
 
     @Override
     public ComponentIdentifier getComponentId() {
-        // TODO:DAZ Makes it work for snapshot id
+        // Use the resolved component id if available: this ensures that Maven Snapshot ids are correctly reported
         if (metaData != null) {
             return metaData.getComponentId();
         }
@@ -135,12 +136,19 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
         }
     }
 
-    public void selectedBy(SelectorState resolver) {
-        if (selectedBy == null) {
-            selectedBy = resolver;
-            allResolvers = Lists.newLinkedList();
+    public void selectedBy(SelectorState resolver, ComponentIdResolveResult idResolveResult) {
+        if (firstSelectedBy == null) {
+            firstSelectedBy = resolver;
+            selectedBy = Lists.newLinkedList();
         }
-        allResolvers.add(resolver);
+        selectedBy.add(resolver);
+        if (!alreadyResolved()) {
+            metaData = idResolveResult.getMetaData();
+        }
+    }
+
+    public List<SelectorState> getSelectedBy() {
+        return selectedBy;
     }
 
     /**
@@ -149,20 +157,7 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
      * @return true if it has been resolved in a cheap way
      */
     public boolean alreadyResolved() {
-        if (metaData != null || failure != null) {
-            return true;
-        }
-
-        ComponentIdResolveResult idResolveResult = selectedBy.getResolveResult();
-        if (idResolveResult.getFailure() != null) {
-            failure = idResolveResult.getFailure();
-            return true;
-        }
-        if (idResolveResult.getMetaData() != null) {
-            metaData = idResolveResult.getMetaData();
-            return true;
-        }
-        return false;
+        return metaData != null || failure != null;
     }
 
     public void resolve() {
@@ -170,10 +165,8 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
             return;
         }
 
-        ComponentIdResolveResult idResolveResult = selectedBy.getResolveResult();
-
         DefaultBuildableComponentResolveResult result = new DefaultBuildableComponentResolveResult();
-        resolver.resolve(idResolveResult.getId(), DefaultComponentOverrideMetadata.forDependency(selectedBy.getDependencyMetadata()), result);
+        resolver.resolve(componentIdentifier, DefaultComponentOverrideMetadata.forDependency(firstSelectedBy.getDependencyMetadata()), result);
         if (result.getFailure() != null) {
             failure = result.getFailure();
             return;
@@ -182,7 +175,7 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
     }
 
     public ResolvedVersionConstraint getVersionConstraint() {
-        return selectedBy == null ? null : selectedBy.getVersionConstraint();
+        return firstSelectedBy == null ? null : firstSelectedBy.getVersionConstraint();
     }
 
     @Override
@@ -286,7 +279,7 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
 
     @Override
     public boolean isFromPendingNode() {
-        return selectedBy != null && selectedBy.getDependencyMetadata().isPending();
+        return firstSelectedBy != null && firstSelectedBy.getDependencyMetadata().isPending();
     }
 
     boolean isSelected() {
