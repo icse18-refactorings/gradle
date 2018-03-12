@@ -44,6 +44,7 @@ import java.util.Set;
  * Resolution state for a given component
  */
 public class ComponentState implements ComponentResolutionState, DependencyGraphComponent, ComponentStateWithDependents<ComponentState> {
+    private final ComponentIdentifier componentIdentifier;
     private final ModuleVersionIdentifier id;
     private final ComponentMetaDataResolver resolver;
     private final VariantNameBuilder variantNameBuilder;
@@ -59,10 +60,11 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
     private DependencyGraphBuilder.VisitState visitState = DependencyGraphBuilder.VisitState.NotSeen;
     List<SelectorState> allResolvers;
 
-    ComponentState(Long resultId, ModuleResolveState module, ModuleVersionIdentifier id, ComponentMetaDataResolver resolver, VariantNameBuilder variantNameBuilder) {
+    ComponentState(Long resultId, ModuleResolveState module, ModuleVersionIdentifier id, ComponentIdentifier componentIdentifier, ComponentMetaDataResolver resolver, VariantNameBuilder variantNameBuilder) {
         this.resultId = resultId;
         this.module = module;
         this.id = id;
+        this.componentIdentifier = componentIdentifier;
         this.resolver = resolver;
         this.variantNameBuilder = variantNameBuilder;
     }
@@ -112,9 +114,27 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
         return module;
     }
 
+    // TODO:DAZ WTF???
     @Override
     public ComponentResolveMetadata getMetadata() {
         return metaData;
+    }
+
+    @Override
+    public ComponentResolveMetadata getMetaData() {
+        if (metaData == null) {
+            resolve();
+        }
+        return metaData;
+    }
+
+    @Override
+    public ComponentIdentifier getComponentId() {
+        // TODO:DAZ Makes it work for snapshot id
+        if (metaData != null) {
+            return metaData.getComponentId();
+        }
+        return componentIdentifier;
     }
 
     public void restart(ComponentState selected) {
@@ -169,14 +189,6 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
         metaData = result.getMetaData();
     }
 
-    @Override
-    public ComponentResolveMetadata getMetaData() {
-        if (metaData == null) {
-            resolve();
-        }
-        return metaData;
-    }
-
     public ResolvedVersionConstraint getVersionConstraint() {
         return selectedBy == null ? null : selectedBy.getVersionConstraint();
     }
@@ -208,11 +220,6 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
 
     public void setRoot() {
         selectionReason.setCause(VersionSelectionReasons.ROOT);
-    }
-
-    @Override
-    public ComponentIdentifier getComponentId() {
-        return getMetaData().getComponentId();
     }
 
     @Override
