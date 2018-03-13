@@ -27,25 +27,30 @@ import org.gradle.dependency.locking.exception.LockOutOfDateException;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 class ConfigurationAfterResolveAction implements Action<ResolvableDependencies> {
 
     private static final Logger LOGGER = Logging.getLogger(DependencyLockingPlugin.class);
-    private LockFileReaderWriter lockFileReaderWriter;
-    private final AtomicBoolean mustWrite;
 
-    public ConfigurationAfterResolveAction(LockFileReaderWriter lockFileReaderWriter, AtomicBoolean mustWrite) {
+    private final AtomicReference<List<String>> upgradeModules;
+    private LockFileReaderWriter lockFileReaderWriter;
+    private final AtomicReference<DependencyLockingPlugin.LockfileHandling> lockfileHandling;
+
+    public ConfigurationAfterResolveAction(LockFileReaderWriter lockFileReaderWriter, AtomicReference<DependencyLockingPlugin.LockfileHandling> lockfileHandling, AtomicReference<List<String>> upgradeModules) {
         this.lockFileReaderWriter = lockFileReaderWriter;
-        this.mustWrite = mustWrite;
+        this.lockfileHandling = lockfileHandling;
+        this.upgradeModules = upgradeModules;
     }
 
     @Override
     public void execute(ResolvableDependencies resolvableDependencies) {
         List<String> lines = lockFileReaderWriter.readLockFile(resolvableDependencies.getName());
         Map<String, String> modules = getMapOfResolvedDependencies(resolvableDependencies);
-        validateLockAligned(modules, lines);
-        if (mustWrite.get()) {
+        if (lockfileHandling.get() != DependencyLockingPlugin.LockfileHandling.UPDATE_ALL) {
+            validateLockAligned(modules, lines);
+        }
+        if (lockfileHandling.get() != DependencyLockingPlugin.LockfileHandling.VALIDATE) {
             writeDependencyLockFile(resolvableDependencies.getName(), modules);
         } else {
             // TODO need to record the resolved configuration for potential later writing
@@ -59,13 +64,19 @@ class ConfigurationAfterResolveAction implements Action<ResolvableDependencies> 
     private void validateLockAligned(Map<String, String> modules, List<String> lines) {
         for (String line : lines) {
             String module = line.substring(0, line.lastIndexOf(':'));
-            String version = modules.get(module);
-            if (version == null) {
-                throw new LockOutOfDateException("Lock file contained module '" + line + "' but it is not part of the resolved modules");
-            } else if (!line.contains(version)) {
-                throw new LockOutOfDateException("Lock file expected '" + line + "' but resolution result was '" + module + ":" + version + "'");
+            if (mustCheckModule(module)) {
+                String version = modules.get(module);
+                if (version == null) {
+                    throw new LockOutOfDateException("Lock file contained module '" + line + "' but it is not part of the resolved modules");
+                } else if (!line.contains(version)) {
+                    throw new LockOutOfDateException("Lock file expected '" + line + "' but resolution result was '" + module + ":" + version + "'");
+                }
             }
         }
+    }
+
+    private boolean mustCheckModule(String module) {
+        return !upgradeModules.get().contains(module);
     }
 
     private Map<String, String> getMapOfResolvedDependencies(ResolvableDependencies resolvableDependencies) {

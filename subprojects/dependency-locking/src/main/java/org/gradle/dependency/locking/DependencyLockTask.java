@@ -5,22 +5,46 @@
 package org.gradle.dependency.locking;
 
 import org.gradle.api.DefaultTask;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
 import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.options.Option;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class DependencyLockTask extends DefaultTask {
 
-    private AtomicBoolean mustWrite;
+    private static final Logger LOGGER = Logging.getLogger(DependencyLockTask.class);
 
-    @TaskAction
-    public void triggerLockWriting() {
-        if (mustWrite.compareAndSet(false, true)) {
-            // TODO Need to write all configurations that were resolved already.
+    private AtomicReference<DependencyLockingPlugin.LockfileHandling> lockfileHandling;
+    private AtomicReference<List<String>> upgradeModules;
+
+    @Option(option = "upgradeAllLocks", description = "Enables dependency locking upgrade mode, for all modules")
+    public void setUpgradeAll(boolean upgradeAll) {
+        LOGGER.warn("DependencyLockTask configured with {}", upgradeAll);
+        if (upgradeAll) {
+            lockfileHandling.compareAndSet(DependencyLockingPlugin.LockfileHandling.VALIDATE, DependencyLockingPlugin.LockfileHandling.UPDATE_ALL);
         }
     }
 
-    public void setMustWrite(AtomicBoolean mustWrite) {
-        this.mustWrite = mustWrite;
+    @Option(option = "upgradeModuleLocks", description = "Enables dependency locking upgrade mode, the value of the option are module notations without version, comma separated.")
+    public void setUpgradeModules(String modules) {
+        LOGGER.warn("DependencyLockTask configured with {}", modules);
+        this.upgradeModules.set(Arrays.asList(modules.split(",")));
+    }
+
+    @TaskAction
+    public void triggerLockWriting() {
+        LOGGER.warn("DependencyLockTask executing");
+        if (lockfileHandling.compareAndSet(DependencyLockingPlugin.LockfileHandling.VALIDATE, DependencyLockingPlugin.LockfileHandling.CREATE)) {
+            // TODO Need to write lockfile for all configurations that were already resolved
+        }
+    }
+
+    public void setExchangeProperties(AtomicReference<DependencyLockingPlugin.LockfileHandling> lockfileHandling, AtomicReference<List<String>> upgradeModules) {
+        this.lockfileHandling = lockfileHandling;
+        this.upgradeModules = upgradeModules;
     }
 }

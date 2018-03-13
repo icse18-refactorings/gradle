@@ -162,4 +162,118 @@ org:foo:1.0
 """
 
     }
+
+    def 'allows --upgradeAllLocks option to task'() {
+        buildFile << """
+apply plugin: 'dependency-locking'
+"""
+        expect:
+        succeeds 'saveDependencyLocks', '--upgradeAllLocks'
+    }
+
+    def 'allows --upgradeModuleLocks option to task'() {
+        buildFile << """
+apply plugin: 'dependency-locking'
+"""
+        expect:
+        succeeds 'saveDependencyLocks', '--upgradeModuleLocks', 'org:foo'
+    }
+
+    def 'upgrades lock file'() {
+        mavenRepo.module('org', 'foo', '1.0').publish()
+        mavenRepo.module('org', 'foo', '1.1').publish()
+
+        buildFile << """
+apply plugin: 'dependency-locking'
+
+repositories {
+    maven {
+        name 'repo'
+        url '${mavenRepo.uri}'
+    }
+}
+configurations {
+    lockedConf
+}
+
+dependencies {
+    constraints {
+        lockedConf('org:foo') {
+            version {
+                prefer '1.1'
+            }
+        }
+    }
+    lockedConf 'org:foo:1.+'
+}
+
+tasks.dependencies.dependsOn saveDependencyLocks
+"""
+
+        file('gradle', 'dependency-locks', 'lockedConf.lockfile') << """
+org:foo:1.0
+"""
+        when:
+        succeeds 'dependencies', 'saveDependencyLocks', '--upgradeAllLocks'
+
+        then:
+        def lockFile = file('gradle', 'dependency-locks', 'lockedConf.lockfile')
+        lockFile.text == """# This is a Gradle generated file for dependency locking.
+# Manual edits can break the build and are not advised.
+# This file is expected to be part of source control.
+org:foo:1.1
+"""
+    }
+
+    def 'partially upgrades lock file'() {
+        mavenRepo.module('org', 'foo', '1.0').publish()
+        mavenRepo.module('org', 'foo', '1.1').publish()
+        mavenRepo.module('org', 'bar', '1.0').publish()
+        mavenRepo.module('org', 'bar', '1.1').publish()
+
+        buildFile << """
+apply plugin: 'dependency-locking'
+
+repositories {
+    maven {
+        name 'repo'
+        url '${mavenRepo.uri}'
+    }
+}
+configurations {
+    lockedConf
+}
+
+dependencies {
+    constraints {
+        lockedConf('org:foo') {
+            version {
+                prefer '1.1'
+            }
+        }
+    }
+    lockedConf 'org:foo:[1.0, 1.1]'
+    lockedConf 'org:bar:[1.0, 1.1]'
+}
+
+tasks.dependencies.dependsOn saveDependencyLocks
+"""
+
+        file('gradle', 'dependency-locks', 'lockedConf.lockfile') << """
+org:bar:1.0
+org:foo:1.0
+"""
+        when:
+        succeeds 'dependencies', 'saveDependencyLocks', '--upgradeModuleLocks', 'org:foo'
+
+        then:
+        def lockFile = file('gradle', 'dependency-locks', 'lockedConf.lockfile')
+        lockFile.text == """# This is a Gradle generated file for dependency locking.
+# Manual edits can break the build and are not advised.
+# This file is expected to be part of source control.
+org:bar:1.0
+org:foo:1.1
+"""
+    }
+
 }
