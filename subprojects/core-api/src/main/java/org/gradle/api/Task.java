@@ -165,7 +165,7 @@ public interface Task extends Comparable<Task>, ExtensionAware {
      * @since 4.7
      */
     @Incubating
-    String TASK_PARAMS = "params";
+    String TASK_CONSTRUCTOR_ARGS = "constructorArgs";
 
     /**
      * <p>Returns the name of this task. The name uniquely identifies the task within its {@link Project}.</p>

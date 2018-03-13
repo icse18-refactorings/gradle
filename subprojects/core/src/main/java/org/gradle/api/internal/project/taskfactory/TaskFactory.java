@@ -40,7 +40,7 @@ import java.util.concurrent.Callable;
 
 public class TaskFactory implements ITaskFactory {
     private static final Set<String> VALID_TASK_ARGUMENTS = ImmutableSet.of(
-        Task.TASK_ACTION, Task.TASK_DEPENDS_ON, Task.TASK_DESCRIPTION, Task.TASK_GROUP, Task.TASK_NAME, Task.TASK_OVERWRITE, Task.TASK_TYPE, Task.TASK_PARAMS
+        Task.TASK_ACTION, Task.TASK_DEPENDS_ON, Task.TASK_DESCRIPTION, Task.TASK_GROUP, Task.TASK_NAME, Task.TASK_OVERWRITE, Task.TASK_TYPE, Task.TASK_CONSTRUCTOR_ARGS
     );
     private static final Set<String> MANDATORY_TASK_ARGUMENTS = ImmutableSet.of(
         Task.TASK_NAME, Task.TASK_TYPE
@@ -167,7 +167,7 @@ public class TaskFactory implements ITaskFactory {
     }
 
     private Object[] getConstructorArgs(Map<String, ?> args) {
-        Object constructorArgs = args.get(Task.TASK_PARAMS);
+        Object constructorArgs = args.get(Task.TASK_CONSTRUCTOR_ARGS);
         if (constructorArgs instanceof List) {
             List<?> asList = (List<?>) constructorArgs;
             return asList.toArray(new Object[asList.size()]);
