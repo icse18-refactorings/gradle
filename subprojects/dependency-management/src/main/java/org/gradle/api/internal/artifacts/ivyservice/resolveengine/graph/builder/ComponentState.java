@@ -373,4 +373,23 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
         }
     }
 
+    public CapabilityDescriptor findCapability(String group, String name) {
+        if (id.getGroup().equals(group) && id.getName().equals(name)) {
+            return implicitCapability;
+        }
+        return findCapabilityOnTarget(group, name);
+    }
+
+    private CapabilityDescriptor findCapabilityOnTarget(String group, String name) {
+        for (NodeState target : nodes) {
+            List<? extends CapabilityDescriptor> capabilities = target.getMetadata().getCapabilitiesMetadata().getCapabilities();
+            for (CapabilityDescriptor capability : capabilities) {
+                if (capability.getGroup().equals(group) && capability.getName().equals(name)) {
+                    return capability;
+                }
+            }
+        }
+        return null;
+    }
+
 }
