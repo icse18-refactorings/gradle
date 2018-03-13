@@ -160,7 +160,9 @@ public interface TaskContainer extends TaskCollection<Task>, PolymorphicDomainOb
      * @param constructorArgs The arguments to pass to the task constructor
      * @return The newly created task object
      * @throws InvalidUserDataException If a task with the given name already exists in this project.
+     * @since 4.7
      */
+    @Incubating
     <T extends Task> T create(String name, Class<T> type, Object... constructorArgs) throws InvalidUserDataException;
 
     /**
