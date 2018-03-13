@@ -294,7 +294,8 @@ class DependencyManagementBuildScopeServices {
                                                                 ModuleExclusions moduleExclusions,
                                                                 BuildOperationExecutor buildOperationExecutor,
                                                                 ComponentSelectorConverter componentSelectorConverter,
-                                                                ImmutableAttributesFactory attributesFactory) {
+                                                                ImmutableAttributesFactory attributesFactory,
+                                                                ImmutableModuleIdentifierFactory moduleIdentifierFactory) {
         return new DefaultArtifactDependencyResolver(
             buildOperationExecutor,
             resolverFactories,
@@ -303,7 +304,8 @@ class DependencyManagementBuildScopeServices {
             versionComparator,
             moduleExclusions,
             componentSelectorConverter,
-            attributesFactory);
+            attributesFactory,
+            moduleIdentifierFactory);
     }
 
     ProjectPublicationRegistry createProjectPublicationRegistry() {

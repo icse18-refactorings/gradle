@@ -367,8 +367,13 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
         // check conflict for each target node
         for (NodeState target : nodes) {
             List<? extends CapabilityDescriptor> capabilities = target.getMetadata().getCapabilitiesMetadata().getCapabilities();
-            for (CapabilityDescriptor capability : capabilities) {
-                action.execute(capability);
+            // The isEmpty check is not required, might look innocent, but Guava's performance bad for an empty immutable list
+            // because it still creates an inner class for an iterator, which delegates to an Array iterator, which does... nothing.
+            // so just adding this check has a significant impact because most components do not declare any capability
+            if (!capabilities.isEmpty()) {
+                for (CapabilityDescriptor capability : capabilities) {
+                    action.execute(capability);
+                }
             }
         }
     }
@@ -383,9 +388,11 @@ public class ComponentState implements ComponentResolutionState, DependencyGraph
     private CapabilityDescriptor findCapabilityOnTarget(String group, String name) {
         for (NodeState target : nodes) {
             List<? extends CapabilityDescriptor> capabilities = target.getMetadata().getCapabilitiesMetadata().getCapabilities();
-            for (CapabilityDescriptor capability : capabilities) {
-                if (capability.getGroup().equals(group) && capability.getName().equals(name)) {
-                    return capability;
+            if (!capabilities.isEmpty()) { // Not required, but Guava's performance bad for an empty immutable list
+                for (CapabilityDescriptor capability : capabilities) {
+                    if (capability.getGroup().equals(group) && capability.getName().equals(name)) {
+                        return capability;
+                    }
                 }
             }
         }

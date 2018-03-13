@@ -26,7 +26,7 @@ import org.gradle.api.Action;
 import org.gradle.api.artifacts.ModuleIdentifier;
 import org.gradle.api.artifacts.component.ComponentIdentifier;
 import org.gradle.api.capabilities.CapabilityDescriptor;
-import org.gradle.api.internal.artifacts.DefaultModuleIdentifier;
+import org.gradle.api.internal.artifacts.ImmutableModuleIdentifierFactory;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.graph.builder.ComponentState;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.result.VersionSelectionReasons;
 
@@ -41,11 +41,16 @@ public class DefaultCapabilitiesConflictHandler implements CapabilitiesConflictH
     private final List<Resolver> resolvers = Lists.newArrayListWithExpectedSize(2);
     private final Multimap<ModuleIdentifier, ComponentState> capabilityWithoutVersionToComponents = HashMultimap.create();
     private final Deque<CapabilityConflict> conflicts = new ArrayDeque<CapabilityConflict>();
+    private final ImmutableModuleIdentifierFactory moduleIdentifierFactory;
+
+    public DefaultCapabilitiesConflictHandler(ImmutableModuleIdentifierFactory moduleIdentifierFactory) {
+        this.moduleIdentifierFactory = moduleIdentifierFactory;
+    }
 
     @Override
     public PotentialConflict registerModule(CapabilitiesConflictHandler.Candidate newModule) {
         CapabilityDescriptor capabilityDescriptor = newModule.getCapabilityDescriptor();
-        ModuleIdentifier capabilityWithoutVersion = DefaultModuleIdentifier.newId(capabilityDescriptor.getGroup(), capabilityDescriptor.getName());
+        ModuleIdentifier capabilityWithoutVersion = moduleIdentifierFactory.module(capabilityDescriptor.getGroup(), capabilityDescriptor.getName());
         Collection<ComponentState> components = capabilityWithoutVersionToComponents.get(capabilityWithoutVersion);
         if (components.add(newModule.getComponent()) && components.size() > 1) {
             final List<ComponentState> currentlySelected = Lists.newArrayListWithCapacity(components.size());
