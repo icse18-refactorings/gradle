@@ -144,12 +144,10 @@ dependencies {
     lockedConf 'org:foo:1.+'
     lockedConf 'org:bar:1.+'
 }
-
-tasks.dependencies.dependsOn saveDependencyLocks
 """
 
         when:
-        succeeds'dependencies'
+        succeeds'dependencies', 'saveDependencyLocks'
 
         then:
         def lockFile = file('gradle', 'dependency-locks', 'lockedConf.lockfile')
@@ -206,8 +204,6 @@ dependencies {
     }
     lockedConf 'org:foo:1.+'
 }
-
-tasks.dependencies.dependsOn saveDependencyLocks
 """
 
         file('gradle', 'dependency-locks', 'lockedConf.lockfile') << """
@@ -255,8 +251,6 @@ dependencies {
     lockedConf 'org:foo:[1.0, 1.1]'
     lockedConf 'org:bar:[1.0, 1.1]'
 }
-
-tasks.dependencies.dependsOn saveDependencyLocks
 """
 
         file('gradle', 'dependency-locks', 'lockedConf.lockfile') << """

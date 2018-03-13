@@ -25,32 +25,29 @@ import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 class ConfigurationBeforeResolveAction implements Action<ResolvableDependencies> {
 
     private static final Logger LOGGER = Logging.getLogger(DependencyLockingPlugin.class);
 
-    private final LockFileReaderWriter lockFileReaderWriter;
+    private final LockfileReader lockfileReader;
     private final DependencyConstraintHandler constraintsHandler;
     private final DependencyFactory dependencyFactory;
-    private final AtomicReference<DependencyLockingPlugin.LockfileHandling> lockfileHandling;
-    private final AtomicReference<List<String>> upgradeModules;
+    private final DependencyLockingDataExchanger dataExchanger;
 
-    public ConfigurationBeforeResolveAction(LockFileReaderWriter lockFileReaderWriter, DependencyConstraintHandler constraintsHandler, DependencyFactory dependencyFactory,
-                                            AtomicReference<DependencyLockingPlugin.LockfileHandling> lockfileHandling, AtomicReference<List<String>> upgradeModules) {
-        this.lockFileReaderWriter = lockFileReaderWriter;
+    public ConfigurationBeforeResolveAction(LockfileReader lockfileReader, DependencyConstraintHandler constraintsHandler, DependencyFactory dependencyFactory,
+                                            DependencyLockingDataExchanger dataExchanger) {
+        this.lockfileReader = lockfileReader;
         this.constraintsHandler = constraintsHandler;
         this.dependencyFactory = dependencyFactory;
-        this.lockfileHandling = lockfileHandling;
-        this.upgradeModules = upgradeModules;
+        this.dataExchanger = dataExchanger;
     }
 
     @Override
     public void execute(ResolvableDependencies resolvableDependencies) {
         LOGGER.warn("Pre resolve hook for {}", resolvableDependencies.getName());
-        if (lockfileHandling.get() != DependencyLockingPlugin.LockfileHandling.UPDATE_ALL) {
-            addPreferConstraints(resolvableDependencies.getName(), lockFileReaderWriter.readLockFile(resolvableDependencies.getName()));
+        if (dataExchanger.getLockFileHandling() != DependencyLockingDataExchanger.LockfileHandling.UPDATE_ALL) {
+            addPreferConstraints(resolvableDependencies.getName(), lockfileReader.readLockFile(resolvableDependencies.getName()));
         }
         LOGGER.warn("Constraints: {}", resolvableDependencies.getDependencyConstraints());
     }
@@ -67,7 +64,7 @@ class ConfigurationBeforeResolveAction implements Action<ResolvableDependencies>
     }
 
     private boolean mustConstrainModule(String line) {
-        for (String moduleToUpgrade : upgradeModules.get()) {
+        for (String moduleToUpgrade : dataExchanger.getUpgradeModules()) {
             if (line.startsWith(moduleToUpgrade)) {
                 return false;
             }

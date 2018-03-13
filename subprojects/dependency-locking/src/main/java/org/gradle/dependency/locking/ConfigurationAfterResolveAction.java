@@ -22,43 +22,37 @@ import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
 import org.gradle.api.artifacts.result.ResolvedComponentResult;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
+import org.gradle.dependency.locking.DependencyLockingDataExchanger.LockfileHandling;
 import org.gradle.dependency.locking.exception.LockOutOfDateException;
 
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 class ConfigurationAfterResolveAction implements Action<ResolvableDependencies> {
 
     private static final Logger LOGGER = Logging.getLogger(DependencyLockingPlugin.class);
 
-    private final AtomicReference<List<String>> upgradeModules;
-    private LockFileReaderWriter lockFileReaderWriter;
-    private final AtomicReference<DependencyLockingPlugin.LockfileHandling> lockfileHandling;
+    private final LockfileReader lockfileReader;
+    private final DependencyLockingDataExchanger dataExchanger;
 
-    public ConfigurationAfterResolveAction(LockFileReaderWriter lockFileReaderWriter, AtomicReference<DependencyLockingPlugin.LockfileHandling> lockfileHandling, AtomicReference<List<String>> upgradeModules) {
-        this.lockFileReaderWriter = lockFileReaderWriter;
-        this.lockfileHandling = lockfileHandling;
-        this.upgradeModules = upgradeModules;
+    public ConfigurationAfterResolveAction(LockfileReader lockfileReader, DependencyLockingDataExchanger dataExchanger) {
+        this.lockfileReader = lockfileReader;
+        this.dataExchanger = dataExchanger;
     }
 
     @Override
     public void execute(ResolvableDependencies resolvableDependencies) {
-        List<String> lines = lockFileReaderWriter.readLockFile(resolvableDependencies.getName());
+        String configurationName = resolvableDependencies.getName();
+        LOGGER.warn("Post resolve hook for {}", configurationName);
+        List<String> lines = lockfileReader.readLockFile(configurationName);
         Map<String, String> modules = getMapOfResolvedDependencies(resolvableDependencies);
-        if (lockfileHandling.get() != DependencyLockingPlugin.LockfileHandling.UPDATE_ALL) {
+        LockfileHandling lockFileHandling = dataExchanger.getLockFileHandling();
+        if (lockFileHandling != LockfileHandling.UPDATE_ALL) {
             validateLockAligned(modules, lines);
         }
-        if (lockfileHandling.get() != DependencyLockingPlugin.LockfileHandling.VALIDATE) {
-            writeDependencyLockFile(resolvableDependencies.getName(), modules);
-        } else {
-            // TODO need to record the resolved configuration for potential later writing
-        }
-    }
 
-    private void writeDependencyLockFile(String configurationName, Map<String, String> resolvedModules) {
-        lockFileReaderWriter.writeLockFile(configurationName, resolvedModules);
+        dataExchanger.configurationResolved(configurationName, modules);
     }
 
     private void validateLockAligned(Map<String, String> modules, List<String> lines) {
@@ -76,12 +70,11 @@ class ConfigurationAfterResolveAction implements Action<ResolvableDependencies> 
     }
 
     private boolean mustCheckModule(String module) {
-        return !upgradeModules.get().contains(module);
+        return !dataExchanger.getUpgradeModules().contains(module);
     }
 
     private Map<String, String> getMapOfResolvedDependencies(ResolvableDependencies resolvableDependencies) {
         Map<String, String> modules = new TreeMap<String, String>();
-        LOGGER.warn("Post resolve hook for {}", resolvableDependencies.getName());
         for (ResolvedComponentResult resolvedComponentResult : resolvableDependencies.getResolutionResult().getAllComponents()) {
             if (resolvedComponentResult.getId() instanceof ModuleComponentIdentifier) {
                 ModuleComponentIdentifier id = (ModuleComponentIdentifier) resolvedComponentResult.getId();

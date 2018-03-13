@@ -28,7 +28,7 @@ import java.util.Map;
 
 import static java.util.Collections.emptyList;
 
-class LockFileReaderWriter {
+class LockFileReaderWriter implements LockfileReader, LockfileWriter {
 
     private static final String FILE_SUFFIX = ".lockfile";
     private static final String DEPENDENCY_LOCKING_FOLDER = "gradle/dependency-locks";
@@ -66,6 +66,7 @@ class LockFileReaderWriter {
         }
     }
 
+    @Override
     public List<String> readLockFile(String configurationName) {
         try {
             Path lockFile = lockFilesRoot.resolve(configurationName + FILE_SUFFIX);

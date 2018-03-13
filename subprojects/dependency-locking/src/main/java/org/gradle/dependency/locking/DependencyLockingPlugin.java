@@ -25,23 +25,13 @@ import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 
 import javax.inject.Inject;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Incubating
 public class DependencyLockingPlugin implements Plugin<ProjectInternal> {
 
     private static final Logger LOGGER = Logging.getLogger(DependencyLockingPlugin.class);
 
-    enum LockfileHandling {
-        VALIDATE,
-        CREATE,
-        UPDATE_ALL
-    }
-
-    private final AtomicReference<LockfileHandling> lockfileHandling = new AtomicReference<LockfileHandling>(LockfileHandling.VALIDATE);
-    private final AtomicReference<List<String>> upgradeModules = new AtomicReference<List<String>>(Collections.<String>emptyList());
+    private final DependencyLockingDataExchanger dataExchanger = new DependencyLockingDataExchanger();
 
     private LockFileReaderWriter lockFileReaderWriter;
     private final DependencyFactory dependencyFactory;
@@ -56,16 +46,18 @@ public class DependencyLockingPlugin implements Plugin<ProjectInternal> {
         LOGGER.warn("Applying dependency-locking plugin");
         lockFileReaderWriter = new LockFileReaderWriter(project);
 
+        dataExchanger.setLockfileWriter(lockFileReaderWriter);
+
         DependencyLockTask saveDependencyLocks = project.getTasks().create("saveDependencyLocks", DependencyLockTask.class);
-        saveDependencyLocks.setExchangeProperties(lockfileHandling, upgradeModules);
+        saveDependencyLocks.setExchangeProperties(dataExchanger);
 
         project.getConfigurations().all(new Action<Configuration>() {
             @Override
             public void execute(Configuration configuration) {
                 if (configuration.isCanBeResolved()) {
                     LOGGER.warn("Adding hook to configuration {}", configuration.getName());
-                    configuration.getIncoming().beforeResolve(new ConfigurationBeforeResolveAction(lockFileReaderWriter, project.getDependencies().getConstraints(), dependencyFactory, lockfileHandling, upgradeModules));
-                    configuration.getIncoming().afterResolve(new ConfigurationAfterResolveAction(lockFileReaderWriter, lockfileHandling, upgradeModules));
+                    configuration.getIncoming().beforeResolve(new ConfigurationBeforeResolveAction(lockFileReaderWriter, project.getDependencies().getConstraints(), dependencyFactory, dataExchanger));
+                    configuration.getIncoming().afterResolve(new ConfigurationAfterResolveAction(lockFileReaderWriter, dataExchanger));
                 }
             }
         });
